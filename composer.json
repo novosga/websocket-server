@@ -1,0 +1,13 @@
+{
+    "autoload": {
+        "psr-4": {
+            "": "src//"
+        }
+    },
+    "require": {
+        "novosga/core": "dev-master",
+        "workerman/workerman": "^3.3",
+        "workerman/phpsocket.io": "^1.0",
+        "symfony/console": "^3.1"
+    }
+}

@@ -1,0 +1,14 @@
+#!/usr/bin/php
+<?php
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Workerman\Worker;
+use PHPSocketIO\SocketIO;
+
+$io = new SocketIO(2020);
+$server = new Server($io);
+$server->start();
+
+// Run worker
+Worker::runAll();
