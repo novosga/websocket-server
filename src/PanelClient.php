@@ -28,18 +28,12 @@ class PanelClient extends GenericClient
      */
     public function update($data)
     {
-        // TODO update client settings
-        $this->services = $data;
+        $this->unidade  = Arrays::get($data, 'unidade');
+        $this->services = Arrays::get($data, 'servicos');
     }
     
-    public function sendTicket($senha)
+    public function emitCallTicket($hash)
     {
-        // TODO: check service ID
-        $data = [
-            'id' => time(),
-            'num_senha' => 1,
-            'sig_senha' => 'A',
-        ];
-        $this->getSocket()->emit('new ticket', $data);
+        $this->getSocket()->emit('call ticket', $hash);
     }
 }

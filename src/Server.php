@@ -1,8 +1,6 @@
 <?php
 
-use PHPSocketIO\SocketIO;
 use PHPSocketIO\Socket;
-use Workerman\Lib\Timer;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 
 /**
@@ -28,136 +26,131 @@ class Server
      */
     public $output;
     
-    public function __construct(SocketIO $socket)
+    public function __construct()
     {
-        $this->socket = $socket;
         $this->output = new \Symfony\Component\Console\Output\ConsoleOutput();
     }
     
-    public function start()
+    /**
+     * Output prints
+     * @param string $messages
+     */
+    public function write($messages)
     {
-        $server = $this;
+        $info = date('[Y-m-d\TH:i:s]');
         
-        $this->socket->on('workerStart', function() use ($server) {
-            Timer::add(1, function() use ($server) {
-            });
-        });
+        $this->output->write("<info>{$info}</info> ");
+        $this->output->writeln($messages);
+    }
+    
+    public function onRegisterPanel(Socket $socket, $ip, $data = [])
+    {
+        $this->write("register panel: {$ip}");
+        $this->registerClient($socket, $ip, 'panel', $data);
+    }
+    
+    public function onRegisterUser(Socket $socket, $ip, $data = [])
+    {
+        $this->write("register user: {$ip}");
+        $this->registerClient($socket, $ip, 'user', $data);
+    }
+    
+    public function onNewTicket(Socket $socket, $ip, $data = [])
+    {
+        $this->write("New ticket from {$ip}: " . json_encode($data));
         
-        $this->socket->on('connection', function(Socket $socket) use ($server) {
-            $address = explode(':', $socket->conn->remoteAddress);
-            $ip = $address[0];
-
-            $server->write("<warning>Connection from: {$ip}</warning>");
-
-            /**
-             * Panel Client register
-             * 
-             * Evento recebido quando um painel se registra
-             */
-            $socket->on('register panel', function ($data) use ($socket, $server, $ip) {
-                $server->registerPanel($socket, $ip);
-
-                $server->write("Panel registered: {$ip}");
-                $socket->emit('register ok');
-            });
-
-            /**
-             * User Client register
-             * 
-             * Evento recebido quando usuário do sistema se registra
-             */
-            $socket->on('register user', function ($data) use ($socket, $server, $ip) {
-                $server->registerUser($socket, $ip);
-
-                $server->write("User registered: {$ip}");
-                $socket->emit('register ok');
-            });
-
-            /**
-             * User Client on triagem or redirecting on attendance [user only]
-             * 
-             * Evento disparado para avisar sobre um novo atendimento. Pode ser emitido
-             * pela triagem ou quando um atendimento é redirecionado.
-             */
-            $socket->on('new ticket', function ($data) use ($socket, $server, $ip) {
-                if (!$server->isRegistered($socket)) {
-                    $server->write("Non registered client: {$ip}");
-                    return;
-                }
-                
-                $server->write("New ticket from {$ip}");
-                $server->sendUpdateQueueAlert();
-            });
-
-            /**
-             * User Client on attendance [user only]
-             * 
-             * Evento disparado quando o atendente está chamando uma senha. Por questão de segurança
-             * o dado enviado é o hash do atendimento que o painel usará para puxar os dados do servidor
-             */
-            $socket->on('call ticket', function ($data) use ($socket, $server, $ip) {
-                if (!$server->isRegistered($socket)) {
-                    $server->write("Non registered client: {$ip}");
-                    return;
-                }
-                
-                $server->write("Calling ticket from {$ip}");
-
-                $server->sendCallTicket($data);
-                $server->sendUpdateQueueAlert();
-            });
-
-            /**
-             * Client update [user and panel]
-             * 
-             * Evento disparado pelo cliente para atualizar suas configurações.
-             */
-            $socket->on('client update', function ($data) use ($socket, $server) {
-                $server->write(sprintf("client update: %s\n", print_r($data, true)));
-                
-                $client = $server->getClientFromSocket($socket);
-                $client->update($data);
-            });
-            
-            /**
-             * Socket disconnect
-             * 
-             * Atualiza lista de cliente
-             */
-            $socket->on('disconnect', function () use ($socket, $server) {
-                $server->write("Client disconnected");
-                
-                $server->removeClient($socket);
-            });
-
-        });
+        if (!$this->isRegistered($socket)) {
+            $this->write("Non registered client: {$ip}");
+            return;
+        }
+        
+        $unidade = Arrays::get($data, 'unidade');
+        
+        $this->emitUpdateQueue($unidade);
     }
     
-    public function isValidIp($ip)
+    public function onChangeTicket(Socket $socket, $ip, $data = [])
     {
-        // TODO check if the IP is registered
-        return true;
+        $this->write("Change ticket from {$ip}: " . json_encode($data));
+        
+        if (!$this->isRegistered($socket)) {
+            $this->write("Non registered client: {$ip}");
+            return;
+        }
+        
+        $unidade = Arrays::get($data, 'unidade');
+        
+        $this->emitUpdateQueue($unidade);
     }
     
-    private function removeClient(Socket $socket)
+    public function onCallTicket(Socket $socket, $ip, $data = [])
     {
-        unset($this->clients[$socket->id]);
+        $this->write("Calling ticket from {$ip}: " . json_encode($data));
+        
+        if (!$this->isRegistered($socket)) {
+            $this->write("Non registered client: {$ip}");
+            return;
+        }
+        
+        $unidade = Arrays::get($data, 'unidade');
+        $servico = Arrays::get($data, 'servico');
+        $hash    = Arrays::get($data, 'hash');
+
+        $this->emitCallTicket($unidade, $servico, $hash);
+        $this->emitUpdateQueue($unidade);
     }
     
-    private function sendCallTicket($data)
+    public function onClientUpdate(Socket $socket, $ip, $data = [])
     {
-        foreach ($this->getPanels() as $panel) {
-            $panel->sendTicket($data);
+        $this->write(sprintf("client update: %s", json_encode($data)));
+
+        if (!$this->isRegistered($socket)) {
+            $this->write("Non registered client: {$ip}");
+            return;
+        }
+
+        $client = $this->getClientFromSocket($socket);
+        $client->update($data);
+    }
+    
+    public function onClientDisconnect(Socket $socket, $ip)
+    {
+        $this->write("Client disconnected: {$ip}");
+
+        $this->removeClient($socket);
+    }
+    
+    private function emitCallTicket($unidade, $servico, $hash)
+    {
+        foreach ($this->getPanels($unidade) as $panel) {
+            $this->write("panel - {$servico} - " . join(',', $panel->getServices()));
+            if ($panel->getUnidade() === $unidade && in_array($servico, $panel->getServices())) {
+                $this->write("Send alert to panel {$panel->getIpAddress()}");
+                $panel->emitCallTicket($hash);
+            }
         }
     }
     
-    private function sendUpdateQueueAlert()
+    /**
+     * Envia para os usuários da mesma unidade o evento para atualizar a fila
+     * @param Socket $socket
+     * @param string $ip
+     * @param array $data
+     */
+    private function emitUpdateQueue($unidade)
     {
-        foreach ($this->getUsers() as $user) {
-            $user->sendUpdateQueue();
+        foreach ($this->getUsers($unidade) as $user) {
+            if ($user->getUnidade() === $unidade) {
+                $this->write("Send alert to user {$user->getIpAddress()}");
+                $user->emitUpdateQueue();
+            }
         }
     }
     
+    /**
+     * @param Socket $socket
+     * @return bool
+     */
     private function isRegistered(Socket $socket)
     {
         $client = $this->getClientFromSocket($socket);
@@ -168,7 +161,7 @@ class Server
     
     /**
      * @param Socket $socket
-     * @return Client
+     * @return Client|null
      */
     private function getClientFromSocket(Socket $socket)
     {
@@ -184,10 +177,10 @@ class Server
     /**
      * @return PanelClient[]
      */
-    private function getPanels()
+    private function getPanels($unidade)
     {
         foreach ($this->clients as $client) {
-            if ($client instanceof PanelClient) {
+            if ($client instanceof PanelClient && $client->getUnidade() === $unidade) {
                 yield $client;
             }
         }
@@ -196,42 +189,40 @@ class Server
     /**
      * @return UserClient[]
      */
-    private function getUsers()
+    private function getUsers($unidade)
     {
         foreach ($this->clients as $client) {
-            if ($client instanceof UserClient) {
+            if ($client instanceof UserClient && $client->getUnidade() === $unidade) {
                 yield $client;
             }
         }
     }
 
-    private function registerPanel(Socket $socket, $ip)
+    private function registerClient(Socket $socket, $ip, $type, $data)
     {
-        if (!$this->isValidIp($ip)) {
-            $socket->disconnect(false);
-            return;
+        if ($type === 'panel') {
+            $client = new PanelClient($socket, $ip);
+        } else {
+            $client = new UserClient($socket, $ip);
         }
         
-        $client = new PanelClient($socket, $ip);
-        $this->registerClient($client);
-    }
-    
-    private function registerUser(Socket $socket, $ip)
-    {
-        $client = new UserClient($socket, $ip);
-        $this->registerClient($client);
-    }
-    
-    private function registerClient(Client $client)
-    {
         $this->clients[$client->getSocket()->id] = $client;
-    }
-    
-    private function write($messages)
-    {
-        $info = date('[Y-m-d\TH:i:s]');
         
-        $this->output->write("<info>{$info}</info> ");
-        $this->output->writeln($messages);
+        $client->registerOk();
+        
+        if ($data) {
+            $this->write(sprintf("client update: %s", json_encode($data)));
+            $client->update($data);
+        }
+        
+        return $client;
+    }
+        
+    /**
+     * @param Socket $socket
+     */
+    private function removeClient(Socket $socket)
+    {
+        unset($this->clients[$socket->id]);
     }
 }

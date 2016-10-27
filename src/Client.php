@@ -20,7 +20,16 @@ interface Client
     public function getSocket();
     
     /**
+     * @return int
+     */
+    public function getUnidade();
+    
+    /**
      * @param mixed $data
      */
     public function update($data);
+    
+    /**
+     */
+    public function registerOk();
 }

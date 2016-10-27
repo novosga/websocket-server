@@ -7,7 +7,7 @@
  */
 class UserClient extends GenericClient
 {
-    public function sendUpdateQueue()
+    public function emitUpdateQueue()
     {
         $this->getSocket()->emit('update queue');
     }
@@ -17,6 +17,6 @@ class UserClient extends GenericClient
      */
     public function update($data)
     {
-        
+        $this->unidade  = Arrays::get($data, 'unidade');
     }
 }

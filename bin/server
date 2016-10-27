@@ -5,10 +5,84 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Workerman\Worker;
 use PHPSocketIO\SocketIO;
+use PHPSocketIO\Socket;
 
 $io = new SocketIO(2020);
-$server = new Server($io);
-$server->start();
+$server = new Server();
+
+$io->on('connection', function (Socket $socket) use ($server) {
+    $address = explode(':', $socket->conn->remoteAddress);
+    $ip = $address[0];
+
+    $server->write("<comment>Connection from: {$ip}</comment>");
+
+    /**
+     * Panel Client register
+     * 
+     * Evento recebido quando um painel se registra
+     */
+    $socket->on('register panel', function ($data = []) use ($socket, $server, $ip) {
+        $server->onRegisterPanel($socket, $ip, $data);
+    });
+
+    /**
+     * User Client register
+     * 
+     * Evento recebido quando usuário do sistema se registra
+     */
+    $socket->on('register user', function ($data = []) use ($socket, $server, $ip) {
+        $server->onRegisterUser($socket, $ip, $data);
+    });
+
+    /**
+     * User Client on triagem or redirecting on attendance [user only]
+     * 
+     * Evento disparado para avisar sobre um novo atendimento. Pode ser emitido
+     * pela triagem ou quando um atendimento é redirecionado.
+     */
+    $socket->on('new ticket', function ($data = []) use ($socket, $server, $ip) {
+        $server->onNewTicket($socket, $ip, $data);
+    });
+    
+    /**
+     * User Client on monitor emitted when cancel or transfer ticket [user only]
+     * 
+     * Evento disparado para avisar sobre uma alteração no atendimento. É emitido
+     * pelo monitor quando um atendimento é cancelado ou transferido.
+     */
+    $socket->on('change ticket', function ($data = []) use ($socket, $server, $ip) {
+        $server->onChangeTicket($socket, $ip, $data);
+    });
+
+    /**
+     * User Client on attendance [user only]
+     * 
+     * Evento disparado quando o atendente está chamando uma senha. Por questão de segurança
+     * o dado enviado é o hash do atendimento que o painel usará para puxar os dados do servidor
+     */
+    $socket->on('call ticket', function ($data = []) use ($socket, $server, $ip) {
+        $server->onCallTicket($socket, $ip, $data);
+    });
+
+    /**
+     * Client update [user and panel]
+     * 
+     * Evento disparado pelo cliente para atualizar suas configurações.
+     */
+    $socket->on('client update', function ($data = []) use ($socket, $server, $ip) {
+        $server->onClientUpdate($socket, $ip, $data);
+    });
+
+    /**
+     * Socket disconnect
+     * 
+     * Atualiza lista de cliente
+     */
+    $socket->on('disconnect', function () use ($socket, $server, $ip) {
+        $server->onClientDisconnect($socket, $ip);
+    });
+
+});
 
 // Run worker
 Worker::runAll();

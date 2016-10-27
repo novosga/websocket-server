@@ -19,6 +19,11 @@ abstract class GenericClient implements Client
      */
     private $ipAddress;
     
+    /**
+     * @var string
+     */
+    protected $unidade;
+    
     public function __construct(Socket $socket, $ipAddress)
     {
         $this->socket = $socket;
@@ -41,15 +46,19 @@ abstract class GenericClient implements Client
         return $this->ipAddress;
     }
 
-    public function setSocket(Socket $socket)
+    /**
+     * {@inheritdoc}
+     */
+    public function getUnidade()
     {
-        $this->socket = $socket;
-        return $this;
+        return $this->unidade;
     }
-
-    public function setIpAddress($ipAddress)
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function registerOk() 
     {
-        $this->ipAddress = $ipAddress;
-        return $this;
+        $this->getSocket()->emit('register ok');
     }
 }
