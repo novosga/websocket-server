@@ -1,4 +1,7 @@
 {
+    "name": "novosga/websocket-server",
+    "license": "MIT",
+    "type": "library",
     "autoload": {
         "psr-4": {
             "": "src//"
