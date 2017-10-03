@@ -5,9 +5,13 @@
         }
     },
     "require": {
-        "novosga/core": "dev-master",
-        "workerman/workerman": "^3.3",
-        "workerman/phpsocket.io": "^1.0",
-        "symfony/console": "^3.1"
+        "novosga/core": "self.version",
+        "workerman/phpsocket.io": "^1.1",
+        "symfony/console": "^3.3"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.0-dev"
+        }
     }
 }
