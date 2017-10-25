@@ -123,8 +123,12 @@ class Server
     private function emitCallTicket($unidade, $servico, $hash)
     {
         foreach ($this->getPanels($unidade) as $panel) {
-            $this->write("panel - {$servico} - " . join(',', $panel->getServices()));
-            if ($panel->getUnidade() === $unidade && in_array($servico, $panel->getServices())) {
+            $services = $panel->getServices();
+            if (!is_array($services)) {
+                $services = [];
+            }
+            $this->write("panel - unity {$panel->getUnidade()} - services " . join(',', $services));
+            if ($panel->getUnidade() === $unidade && in_array($servico, $services)) {
                 $this->write("Send alert to panel {$panel->getIpAddress()}");
                 $panel->emitCallTicket($hash);
             }
