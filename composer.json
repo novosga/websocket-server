@@ -8,7 +8,6 @@
         }
     },
     "require": {
-        "novosga/core": "self.version",
         "workerman/phpsocket.io": "^1.1",
         "symfony/console": "^3.3"
     },
