@@ -1,7 +1,13 @@
 #!/usr/bin/php
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+$standaloneAutoload = __DIR__ . '/../vendor/autoload.php';
+
+if (file_exists($standaloneAutoload)) {
+    require $standaloneAutoload;
+} else {
+    require __DIR__ . '/../../../autoload.php';
+}
 
 use Workerman\Worker;
 use PHPSocketIO\SocketIO;
@@ -15,7 +21,7 @@ $io->on('connection', function (Socket $socket) use ($server) {
     $ip = $address[0];
 
     $server->write("<comment>Connection from: {$ip}</comment>");
-    
+
     /**
      * Panel Client register
      * 
