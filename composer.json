@@ -9,7 +9,7 @@
     },
     "require": {
         "workerman/phpsocket.io": "^1.1",
-        "symfony/console": "^3.3"
+        "symfony/console": "^4.0"
     },
     "extra": {
         "branch-alias": {
