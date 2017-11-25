@@ -1,5 +1,7 @@
 <?php
 
+namespace Novosga\Websocket;
+
 use PHPSocketIO\Socket;
 
 /**
@@ -15,19 +17,24 @@ abstract class GenericClient implements Client
     private $socket;
     
     /**
-     * @var string
+     * @var Address
      */
-    private $ipAddress;
+    private $address;
     
     /**
      * @var string
      */
     protected $unidade;
     
-    public function __construct(Socket $socket, $ipAddress)
+    public function __construct(Socket $socket, $address)
     {
         $this->socket = $socket;
-        $this->ipAddress = $ipAddress;
+        
+        if ($address instanceof Address) {
+            $this->address = $address;
+        } else {
+            $this->address = new Address($address);
+        }
     }
     
     /**
@@ -41,9 +48,9 @@ abstract class GenericClient implements Client
     /**
      * {@inheritdoc}
      */
-    public function getIpAddress()
+    public function getAddress()
     {
-        return $this->ipAddress;
+        return $this->adress;
     }
 
     /**

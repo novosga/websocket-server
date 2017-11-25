@@ -1,7 +1,9 @@
 <?php
 
+namespace Novosga\Websocket;
+
 use PHPSocketIO\Socket;
-use Symfony\Component\Console\Output\ConsoleOutputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Servidor websocket de eventos do sistema NovoSGA, utilizando socket.io protocol
@@ -22,13 +24,13 @@ class Server
     public $clients = [];
     
     /**
-     * @var ConsoleOutputInterface
+     * @var OutputInterface
      */
     public $output;
     
-    public function __construct()
+    public function __construct(OutputInterface $output)
     {
-        $this->output = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $this->output = $output;
     }
     
     /**
@@ -43,24 +45,24 @@ class Server
         $this->output->writeln($messages);
     }
     
-    public function onRegisterPanel(Socket $socket, $ip, $data = [])
+    public function onRegisterPanel(Socket $socket, Address $address, $data = [])
     {
-        $this->write("register panel: {$ip}");
-        $this->registerClient($socket, $ip, 'panel', $data);
+        $this->write("register panel: {$address}");
+        $this->registerClient($socket, $address, 'panel', $data);
     }
     
-    public function onRegisterUser(Socket $socket, $ip, $data = [])
+    public function onRegisterUser(Socket $socket, Address $address, $data = [])
     {
-        $this->write("register user: {$ip}");
-        $this->registerClient($socket, $ip, 'user', $data);
+        $this->write("register user: {$address}");
+        $this->registerClient($socket, $address, 'user', $data);
     }
     
-    public function onNewTicket(Socket $socket, $ip, $data = [])
+    public function onNewTicket(Socket $socket, Address $address, $data = [])
     {
-        $this->write("New ticket from {$ip}: " . json_encode($data));
+        $this->write("New ticket from {$address}: " . json_encode($data));
         
         if (!$this->isRegistered($socket)) {
-            $this->write("Non registered client: {$ip}");
+            $this->write("Non registered client: {$address}");
             return;
         }
         
@@ -69,12 +71,12 @@ class Server
         $this->emitUpdateQueue($unidade);
     }
     
-    public function onChangeTicket(Socket $socket, $ip, $data = [])
+    public function onChangeTicket(Socket $socket, Address $address, $data = [])
     {
-        $this->write("Change ticket from {$ip}: " . json_encode($data));
+        $this->write("Change ticket from {$address}: " . json_encode($data));
         
         if (!$this->isRegistered($socket)) {
-            $this->write("Non registered client: {$ip}");
+            $this->write("Non registered client: {$address}");
             return;
         }
         
@@ -83,12 +85,12 @@ class Server
         $this->emitUpdateQueue($unidade);
     }
     
-    public function onCallTicket(Socket $socket, $ip, $data = [])
+    public function onCallTicket(Socket $socket, Address $address, $data = [])
     {
-        $this->write("Calling ticket from {$ip}: " . json_encode($data));
+        $this->write("Calling ticket from {$address}: " . json_encode($data));
         
         if (!$this->isRegistered($socket)) {
-            $this->write("Non registered client: {$ip}");
+            $this->write("Non registered client: {$address}");
             return;
         }
         
@@ -100,12 +102,12 @@ class Server
         $this->emitUpdateQueue($unidade);
     }
     
-    public function onClientUpdate(Socket $socket, $ip, $data = [])
+    public function onClientUpdate(Socket $socket, Address $address, $data = [])
     {
         $this->write(sprintf("client update: %s", json_encode($data)));
 
         if (!$this->isRegistered($socket)) {
-            $this->write("Non registered client: {$ip}");
+            $this->write("Non registered client: {$address}");
             return;
         }
 
@@ -113,9 +115,9 @@ class Server
         $client->update($data);
     }
     
-    public function onClientDisconnect(Socket $socket, $ip)
+    public function onClientDisconnect(Socket $socket, Address $address)
     {
-        $this->write("Client disconnected: {$ip}");
+        $this->write("Client disconnected: {$address}");
 
         $this->removeClient($socket);
     }
@@ -129,7 +131,7 @@ class Server
             }
             $this->write("panel - unity {$panel->getUnidade()} - services " . join(',', $services));
             if ($panel->getUnidade() === $unidade && in_array($servico, $services)) {
-                $this->write("Send alert to panel {$panel->getIpAddress()}");
+                $this->write("Send alert to panel {$panel->getAddress()}");
                 $panel->emitCallTicket($hash);
             }
         }
@@ -138,14 +140,14 @@ class Server
     /**
      * Envia para os usuários da mesma unidade o evento para atualizar a fila
      * @param Socket $socket
-     * @param string $ip
+     * @param string $address
      * @param array $data
      */
     private function emitUpdateQueue($unidade)
     {
         foreach ($this->getUsers($unidade) as $user) {
             if ($user->getUnidade() === $unidade) {
-                $this->write("Send alert to user {$user->getIpAddress()}");
+                $this->write("Send alert to user {$user->getAddress()}");
                 $user->emitUpdateQueue();
             }
         }
@@ -202,12 +204,12 @@ class Server
         }
     }
 
-    private function registerClient(Socket $socket, $ip, $type, $data)
+    private function registerClient(Socket $socket, Address $address, $type, $data)
     {
         if ($type === 'panel') {
-            $client = new PanelClient($socket, $ip);
+            $client = new PanelClient($socket, $address);
         } else {
-            $client = new UserClient($socket, $ip);
+            $client = new UserClient($socket, $address);
         }
         
         $this->clients[$client->getSocket()->id] = $client;

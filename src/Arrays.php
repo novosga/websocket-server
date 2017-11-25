@@ -1,5 +1,7 @@
 <?php
 
+namespace Novosga\Websocket;
+
 /**
  * Arrays
  *

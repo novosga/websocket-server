@@ -1,5 +1,7 @@
 <?php
 
+namespace Novosga\Websocket;
+
 use PHPSocketIO\Socket;
 
 /**
@@ -10,9 +12,9 @@ use PHPSocketIO\Socket;
 interface Client
 {
     /**
-     * @return string
+     * @return Address
      */
-    public function getIpAddress();
+    public function getAddress();
     
     /**
      * @return Socket
