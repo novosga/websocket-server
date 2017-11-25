@@ -34,7 +34,7 @@ class Address
             }
         }
         
-        if ($this->port < 0 || $this->port > 65535) {
+        if ($this->port < 1024 || $this->port > 65535) {
             throw new Exception('Invalid port number');
         }
         
