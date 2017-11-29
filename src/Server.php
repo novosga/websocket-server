@@ -94,12 +94,12 @@ class Server
             return;
         }
         
-        $unidade = Arrays::get($data, 'unidade');
-        $servico = Arrays::get($data, 'servico');
+        $unidade = (int) Arrays::get($data, 'unidade');
+        $servico = (int) Arrays::get($data, 'servico');
         $hash    = Arrays::get($data, 'hash');
 
         $this->emitCallTicket($unidade, $servico, $hash);
-        $this->emitUpdateQueue($unidade);
+//        $this->emitUpdateQueue($unidade);
     }
     
     public function onClientUpdate(Socket $socket, Address $address, $data = [])
@@ -124,16 +124,20 @@ class Server
     
     private function emitCallTicket($unidade, $servico, $hash)
     {
-        foreach ($this->getPanels($unidade) as $panel) {
-            $services = $panel->getServices();
-            if (!is_array($services)) {
-                $services = [];
+        try {
+            foreach ($this->getPanels($unidade) as $panel) {
+                $services = $panel->getServices();
+                if (!is_array($services)) {
+                    $services = [];
+                }
+                $this->write("panel {$panel->getAddress()->getIp()} - panel unity {$panel->getUnidade()} - panel services: " . join(',', $services));
+                if ($panel->getUnidade() === $unidade && in_array($servico, $services)) {
+                    $panel->emitCallTicket($hash);
+                    $this->write("Send alert to panel {$panel->getAddress()}");
+                }
             }
-            $this->write("panel - unity {$panel->getUnidade()} - services " . join(',', $services));
-            if ($panel->getUnidade() === $unidade && in_array($servico, $services)) {
-                $this->write("Send alert to panel {$panel->getAddress()}");
-                $panel->emitCallTicket($hash);
-            }
+        } catch (\Exception $e) {
+            $this->write($e);
         }
     }
     

@@ -30,8 +30,15 @@ class PanelClient extends GenericClient
      */
     public function update($data)
     {
-        $this->unidade  = Arrays::get($data, 'unidade');
-        $this->services = Arrays::get($data, 'servicos');
+        $this->unidade  = (int) Arrays::get($data, 'unidade');
+        $services       = Arrays::get($data, 'servicos');
+        $this->services = [];
+        
+        if (is_array($services)) {
+            foreach ($services as $service) {
+                $this->services[] = (int) $service;
+            }
+        }
     }
     
     public function emitCallTicket($hash)

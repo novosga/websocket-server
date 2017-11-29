@@ -50,7 +50,7 @@ abstract class GenericClient implements Client
      */
     public function getAddress()
     {
-        return $this->adress;
+        return $this->address;
     }
 
     /**
