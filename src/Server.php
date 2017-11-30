@@ -99,7 +99,7 @@ class Server
         $hash    = Arrays::get($data, 'hash');
 
         $this->emitCallTicket($unidade, $servico, $hash);
-//        $this->emitUpdateQueue($unidade);
+        $this->emitUpdateQueue($unidade);
     }
     
     public function onClientUpdate(Socket $socket, Address $address, $data = [])
