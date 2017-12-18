@@ -9,6 +9,17 @@ namespace Novosga\Websocket;
  */
 class UserClient extends GenericClient
 {
+    /**
+     * {@inheritdoc}
+     */
+    public function getType(): string
+    {
+        return Server::CLIENT_USER;
+    }
+    
+    /**
+     * Emit update queue event
+     */
     public function emitUpdateQueue()
     {
         $this->getSocket()->emit('update queue');
@@ -17,8 +28,14 @@ class UserClient extends GenericClient
     /**
      * {@inheritdoc}
      */
-    public function update($data)
+    public function update(array $data)
     {
-        $this->unidade  = Arrays::get($data, 'unidade');
+        $unityId = (int) Arrays::get($data, 'unity');
+        
+        if (!$unityId) {
+            throw new \Exception('[User-Client] invalid unity id');
+        }
+        
+        $this->unity = $unityId;
     }
 }

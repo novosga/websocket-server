@@ -21,7 +21,7 @@ class Address
      */
     private $port;
     
-    public function __construct($ipOrFullAddress, $port = null)
+    public function __construct(string $ipOrFullAddress, int $port = null)
     {
         if ($port > 0) {
             $this->ip   = $ipOrFullAddress;

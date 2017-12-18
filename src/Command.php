@@ -15,10 +15,10 @@ use Workerman\Worker;
  */
 class Command
 {
-    public function run(OutputInterface $output)
+    public function run(string $serverSecret, OutputInterface $output)
     {
         $io = new SocketIO(2020);
-        $server = new Server($output);
+        $server = new Server($serverSecret, $output);
 
         $io->on('connection', function (Socket $socket) use ($server) {
             $address = new Address($socket->conn->remoteAddress);

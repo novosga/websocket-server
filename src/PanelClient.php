@@ -14,12 +14,27 @@ class PanelClient extends GenericClient
      */
     private $services = [];
     
-    public function getServices()
+    /**
+     * {@inheritdoc}
+     */
+    public function getType(): string
+    {
+        return Server::CLIENT_PANEL;
+    }
+    
+    /**
+     * @return array|int[]
+     */
+    public function getServices(): array
     {
         return $this->services;
     }
 
-    public function setServices($services)
+    /**
+     * @param array|int[] $services
+     * @return $this
+     */
+    public function setServices(array $services): self
     {
         $this->services = $services;
         return $this;
@@ -28,10 +43,16 @@ class PanelClient extends GenericClient
     /**
      * {@inheritdoc}
      */
-    public function update($data)
+    public function update(array $data)
     {
-        $this->unidade  = (int) Arrays::get($data, 'unidade');
-        $services       = Arrays::get($data, 'servicos');
+        $unityId  = (int) Arrays::get($data, 'unity');
+        $services = Arrays::get($data, 'services');
+        
+        if (!$unityId) {
+            throw new \Exception('[Panel-Client] invalid unity id');
+        }
+        
+        $this->unity    = $unityId;
         $this->services = [];
         
         if (is_array($services)) {
@@ -41,8 +62,18 @@ class PanelClient extends GenericClient
         }
     }
     
-    public function emitCallTicket($hash)
+    /**
+     * Emit call ticket event
+     * @param int $unityId
+     * @param int $serviceId
+     * @param string $hash
+     */
+    public function emitCallTicket(int $unityId, int $serviceId, string $hash)
     {
-        $this->getSocket()->emit('call ticket', $hash);
+        $this->getSocket()->emit('call ticket', [
+            'unity'   => $unityId,
+            'service' => $serviceId,
+            'hash'    => $hash,
+        ]);
     }
 }

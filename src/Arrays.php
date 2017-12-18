@@ -16,7 +16,7 @@ class Arrays
      * @param string $name
      * @return mixed|null
      */
-    public static function get($array, $name)
+    public static function get(array $array, string $name)
     {
         $value = null;
         

@@ -12,26 +12,31 @@ use PHPSocketIO\Socket;
 interface Client
 {
     /**
+     * @return string
+     */
+    public function getType(): string;
+    /**
      * @return Address
      */
-    public function getAddress();
+    public function getAddress(): Address;
     
     /**
      * @return Socket
      */
-    public function getSocket();
+    public function getSocket(): Socket;
     
     /**
      * @return int
      */
-    public function getUnidade();
+    public function getUnity(): int;
     
     /**
-     * @param mixed $data
+     * @param array $data
      */
-    public function update($data);
+    public function update(array $data);
     
     /**
+     * Emit register ok event
      */
     public function registerOk();
 }
