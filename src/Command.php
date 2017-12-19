@@ -54,6 +54,13 @@ class Command
             });
 
             /**
+             * User Client on settings emitted when add or remove user services [user-only]
+             */
+            $socket->on('change user', function ($data = []) use ($socket, $server, $address) {
+                $server->onChangeUser($socket, $address, $data);
+            });
+
+            /**
              * User Client on monitor emitted when cancel or transfer ticket [user only]
              * 
              * Evento disparado para avisar sobre uma alteração no atendimento. É emitido

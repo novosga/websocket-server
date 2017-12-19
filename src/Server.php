@@ -104,7 +104,26 @@ class Server
     }
     
     /**
-     * 
+     * @param Socket $socket
+     * @param \Novosga\Websocket\Address $address
+     * @param array $data
+     */
+    public function onChangeUser(Socket $socket, Address $address, array $data = [])
+    {
+        $this->write("Change user from {$address}: " . json_encode($data));
+        
+        if (!$this->isClient($socket, self::CLIENT_USER)) {
+            return;
+        }
+        
+        $unityId = (int) Arrays::get($data, 'unity');
+        $userId  = (int) Arrays::get($data, 'user');
+        
+        $this->emitChangeUser($unityId, $userId);
+    }
+    
+    
+    /**
      * @param Socket $socket
      * @param \Novosga\Websocket\Address $address
      * @param array $data
@@ -203,13 +222,28 @@ class Server
      * @param string $address
      * @param int    $unityId
      */
-    private function emitUpdateQueue($unityId)
+    private function emitUpdateQueue(int $unityId)
     {
         /* @var $user UserClient */
         foreach ($this->getUsers($unityId) as $user) {
             if ($user->getUnity() === $unityId) {
                 $this->write("Send alert to user {$user->getAddress()}");
                 $user->emitUpdateQueue();
+            }
+        }
+    }
+    
+    /**
+     * @param int $unityId
+     * @param int $userId
+     */
+    private function emitChangeUser(int $unityId, int $userId)
+    {
+        /* @var $user UserClient */
+        foreach ($this->getUsers($unityId) as $user) {
+            if ($user->getUnity() === $unityId && $user->getId() === $userId) {
+                $this->write("Send alert to user {$user->getAddress()}");
+                $user->emitChangeUser();
             }
         }
     }
