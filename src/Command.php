@@ -35,6 +35,15 @@ class Command
             });
 
             /**
+             * Triage Client register
+             * 
+             * Evento recebido quando um painel se registra
+             */
+            $socket->on('register triage', function ($data = []) use ($socket, $server, $address) {
+                $server->onRegisterTriage($socket, $address, $data);
+            });
+
+            /**
              * User Client register
              * 
              * Evento recebido quando usuário do sistema se registra

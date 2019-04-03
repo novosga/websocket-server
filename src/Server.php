@@ -14,8 +14,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Server
 {
-    const CLIENT_PANEL = 'panel';
-    const CLIENT_USER  = 'user';
+    const CLIENT_PANEL  = 'panel';
+    const CLIENT_TRIAGE = 'triage';
+    const CLIENT_USER   = 'user';
     
     /**
      * @var Socket
@@ -71,6 +72,17 @@ class Server
      * @param \Novosga\Websocket\Address $address
      * @param array $data
      */
+    public function onRegisterTriage(Socket $socket, Address $address, array $data = [])
+    {
+        $this->write("register triage: {$address}");
+        $this->registerClient($socket, $address, self::CLIENT_TRIAGE, $data);
+    }
+    
+    /**
+     * @param Socket $socket
+     * @param \Novosga\Websocket\Address $address
+     * @param array $data
+     */
     public function onRegisterUser(Socket $socket, Address $address, array $data = [])
     {
         $secret = Arrays::get($data, 'secret');
@@ -94,7 +106,10 @@ class Server
     {
         $this->write("New ticket from {$address}: " . json_encode($data));
         
-        if (!$this->isClient($socket, self::CLIENT_USER)) {
+        $isUser   = !$this->isClient($socket, self::CLIENT_USER);
+        $isTriage = !$this->isClient($socket, self::CLIENT_TRIAGE);
+
+        if (!$isUser && !$isTriage) {
             return;
         }
         
@@ -334,16 +349,22 @@ class Server
         try {
             $this->write(sprintf("trying to register new client: type=%s, data=%s", $type, json_encode($data)));
 
+            $client = null;
+
             switch ($type) {
                 case self::CLIENT_PANEL:
                     $client = new PanelClient($socket, $address, $data);
                     break;
+                case self::CLIENT_TRIAGE:
+                    $client = new TriageClient($socket, $address, $data);
+                    break;
                 case self::CLIENT_USER:
                     $client = new UserClient($socket, $address, $data);
                     break;
-                default:
-                    $this->write("Unknown client type: {$type}");
-                    return;
+            }
+
+            if (!$client) {
+                throw new \Exception("Unknown client type: {$type}");
             }
 
             $this->clients[$client->getSocket()->id] = $client;
